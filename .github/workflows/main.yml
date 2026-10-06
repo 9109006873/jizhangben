@@ -7,39 +7,40 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # 明确指定，避免自动迁移到26
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v5
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Install Buildozer and Dependencies
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git zip unzip openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+    - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
-    - name: Accept Android SDK Licenses
+    - name: Accept Android SDK Licenses (Pre-step)
       run: |
-        export ANDROID_SDK_ROOT=$ANDROID_HOME
-        mkdir -p $ANDROID_SDK_ROOT/licenses
-        yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-        echo -e "\n8933bad161af4b6a5b573652ffc7aaf3aee85a47" > $ANDROID_SDK_ROOT/licenses/android-sdk-license
-        echo -e "\nd56f5187479451eabf01fb78af6dfcb131b33910" > $ANDROID_SDK_ROOT/licenses/android-sdk-preview-license
-        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_SDK_ROOT/licenses/google-tv-preview-license
+        mkdir -p $ANDROID_HOME/licenses
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
     - name: Build APK
-      run: yes | buildozer -v android debug
+      run: buildozer -v android debug  # 不需要加 yes |
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
