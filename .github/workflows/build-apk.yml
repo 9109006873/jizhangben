@@ -1,0 +1,204 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update
+
+          sudo apt install -y \
+            git \
+            zip \
+            unzip \
+            wget \
+            curl \
+            openjdk-17-jdk \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo5 \
+            cmake \
+            libffi-dev \
+            libssl-dev
+
+      - name: Install Buildozer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "Cython==0.29.36"
+          python -m pip install "buildozer==1.6.0"
+
+          echo "===== TOOL VERSIONS ====="
+          python --version
+          cython --version
+          buildozer --version
+          java -version
+          echo "========================="
+
+      - name: Install modern Android SDK command line tools
+        shell: bash
+        run: |
+          set -e
+
+          SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+
+          rm -rf "$SDK_ROOT"
+          mkdir -p "$SDK_ROOT"
+
+          cd "$SDK_ROOT"
+
+          echo "Downloading Android command line tools..."
+
+          wget -q \
+            https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
+            -O commandlinetools.zip
+
+          unzip -q commandlinetools.zip
+
+          mkdir -p "$SDK_ROOT/cmdline-tools"
+
+          mv "$SDK_ROOT/cmdline-tools" "$SDK_ROOT/cmdline-tools-tmp" 2>/dev/null || true
+
+          if [ -d "$SDK_ROOT/cmdline-tools-tmp/cmdline-tools" ]; then
+            mv \
+              "$SDK_ROOT/cmdline-tools-tmp/cmdline-tools" \
+              "$SDK_ROOT/cmdline-tools/latest"
+            rm -rf "$SDK_ROOT/cmdline-tools-tmp"
+          elif [ -d "$SDK_ROOT/cmdline-tools" ]; then
+            true
+          else
+            echo "ERROR: Android command line tools directory not found."
+            find "$SDK_ROOT" -maxdepth 3 -type f | head -100
+            exit 1
+          fi
+
+          mkdir -p "$SDK_ROOT/tools"
+
+          rm -rf "$SDK_ROOT/tools/bin"
+
+          ln -s \
+            "$SDK_ROOT/cmdline-tools/latest/bin" \
+            "$SDK_ROOT/tools/bin"
+
+          SDKMANAGER="$SDK_ROOT/tools/bin/sdkmanager"
+
+          echo "===== SDKMANAGER ====="
+          ls -la "$SDK_ROOT/tools"
+          ls -la "$SDK_ROOT/tools/bin"
+
+          test -x "$SDKMANAGER"
+
+          "$SDKMANAGER" --version
+
+          echo "======================"
+
+      - name: Accept Android SDK licenses
+        shell: bash
+        run: |
+          set -e
+
+          SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+          SDKMANAGER="$SDK_ROOT/tools/bin/sdkmanager"
+
+          yes | "$SDKMANAGER" \
+            --sdk_root="$SDK_ROOT" \
+            --licenses
+
+          echo "===== LICENSES ====="
+          find "$SDK_ROOT/licenses" \
+            -maxdepth 1 \
+            -type f \
+            -print 2>/dev/null || true
+          echo "===================="
+
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          set -e
+
+          SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+          SDKMANAGER="$SDK_ROOT/tools/bin/sdkmanager"
+
+          "$SDKMANAGER" \
+            --sdk_root="$SDK_ROOT" \
+            "platform-tools" \
+            "platforms;android-33" \
+            "build-tools;35.0.0"
+
+          echo "===== INSTALLED SDK ====="
+          "$SDKMANAGER" \
+            --sdk_root="$SDK_ROOT" \
+            --list_installed
+          echo "========================="
+
+      - name: Clean previous Android build
+        shell: bash
+        run: |
+          rm -rf .buildozer
+          rm -rf bin
+
+      - name: Verify Buildozer configuration
+        shell: bash
+        run: |
+          echo "===== buildozer.spec ====="
+          cat buildozer.spec
+          echo "=========================="
+
+      - name: Build APK
+        shell: bash
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+        run: |
+          set -e
+
+          buildozer android debug
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -e
+
+          echo "===== APK FILES ====="
+
+          find bin \
+            -maxdepth 1 \
+            -type f \
+            -name "*.apk" \
+            -print
+
+          APK="$(find bin \
+            -maxdepth 1 \
+            -type f \
+            -name '*.apk' \
+            -print -quit)"
+
+          test -n "$APK"
+
+          echo "APK generated successfully:"
+          echo "$APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jizhangben-debug-apk
+          path: bin/*.apk
+          if-no-files-found: error
