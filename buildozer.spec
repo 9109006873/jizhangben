@@ -44,3 +44,5 @@ bin_dir = bin
 
 # (str) Warn about deprecated buildozer.spec options
 warn_on_root = 1
+
+android.accept_sdk_license = True
