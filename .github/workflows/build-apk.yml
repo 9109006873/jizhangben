@@ -29,7 +29,7 @@ jobs:
             unzip \
             wget \
             curl \
-            openjdk-11-jdk \
+            openjdk-17-jdk \
             autoconf \
             libtool \
             pkg-config \
@@ -41,10 +41,14 @@ jobs:
             libffi-dev \
             libssl-dev
 
-      - name: Set Java 11
+      - name: Set Java 17
         shell: bash
         run: |
-          JAVA_HOME_PATH="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+          set -e
+
+          JAVA_HOME_PATH="/usr/lib/jvm/java-17-openjdk-amd64"
+
+          test -d "$JAVA_HOME_PATH"
 
           echo "JAVA_HOME=$JAVA_HOME_PATH" >> "$GITHUB_ENV"
           echo "$JAVA_HOME_PATH/bin" >> "$GITHUB_PATH"
@@ -88,7 +92,10 @@ jobs:
             -O commandlinetools.zip
 
           rm -rf "$SDK_ROOT/cmdline-tools/latest"
+          rm -rf "$SDK_ROOT/cmdline-tools/extracted"
+
           mkdir -p "$SDK_ROOT/cmdline-tools/latest"
+          mkdir -p "$SDK_ROOT/cmdline-tools/extracted"
 
           unzip -q \
             "$SDK_ROOT/commandlinetools.zip" \
@@ -110,6 +117,7 @@ jobs:
             "$SDK_ROOT/cmdline-tools/latest/"
 
           rm -rf "$SDK_ROOT/cmdline-tools/extracted"
+          rm -f "$SDK_ROOT/commandlinetools.zip"
 
           mkdir -p "$SDK_ROOT/tools"
 
@@ -137,9 +145,9 @@ jobs:
 
           test -x "$SDKMANAGER"
 
+          echo "===== SDKMANAGER VERSION ====="
           "$SDKMANAGER" --version
-
-          echo "======================"
+          echo "=============================="
 
       - name: Accept Android SDK licenses
         shell: bash
