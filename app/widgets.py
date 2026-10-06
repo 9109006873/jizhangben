@@ -1,3 +1,4 @@
+# app/widgets.py
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 
