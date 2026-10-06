@@ -40,6 +40,7 @@ jobs:
           SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
 
           mkdir -p "$SDK_ROOT"
+          mkdir -p "$SDK_ROOT/licenses"
           cd "$SDK_ROOT"
 
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-6514223_latest.zip
@@ -49,7 +50,7 @@ jobs:
           test -x "$SDK_ROOT/tools/bin/sdkmanager"
 
           echo "sdkmanager found:"
-          "$SDK_ROOT/tools/bin/sdkmanager" --version
+          "$SDK_ROOT/tools/bin/sdkmanager" --sdk_root="$SDK_ROOT" --version
 
       - name: Accept Android SDK licenses
         run: |
