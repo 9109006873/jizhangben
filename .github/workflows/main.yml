@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            git zip unzip openjdk-17-jdk \
+            git zip unzip wget openjdk-17-jdk \
             autoconf libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev libtinfo5 \
             cmake libffi-dev libssl-dev
@@ -34,6 +34,33 @@ jobs:
           python -m pip install buildozer
           buildozer --version
           python -m pip show buildozer
+
+      - name: Pre-install Android SDK command line tools
+        run: |
+          SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$SDK_ROOT"
+          cd "$SDK_ROOT"
+
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-6514223_latest.zip
+
+          unzip -q commandlinetools-linux-6514223_latest.zip
+
+          test -x "$SDK_ROOT/tools/bin/sdkmanager"
+
+          echo "sdkmanager found:"
+          "$SDK_ROOT/tools/bin/sdkmanager" --version
+
+      - name: Accept Android SDK licenses
+        run: |
+          SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
+
+          yes | "$SDK_ROOT/tools/bin/sdkmanager" \
+            --sdk_root="$SDK_ROOT" \
+            --licenses
+
+          echo "Android SDK licenses:"
+          find "$SDK_ROOT/licenses" -maxdepth 1 -type f -print 2>/dev/null || true
 
       - name: Build APK
         run: |
