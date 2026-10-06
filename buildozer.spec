@@ -46,3 +46,4 @@ bin_dir = bin
 warn_on_root = 1
 
 android.accept_sdk_license = True
+android.build_tools_version = 34.0.0
