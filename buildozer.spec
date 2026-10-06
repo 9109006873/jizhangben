@@ -1,49 +1,38 @@
 [app]
 
-# (str) Title of your application
 title = 我的记账本
-
-# (str) Package name
 package.name = jizhangben
-
-# (str) Package domain
 package.domain = com.jizhangben
 
-# (str) Source code where main.py lives
 source.dir = .
+source.include_exts = py,png,jpg,jpeg,kv,atlas,txt,json,xlsx
 
-# (str) Application version
 version = 1.0.0
 
-# (list) Application requirements
 requirements = python3,kivy==2.3.1,openpyxl==3.1.5
 
-# (str) Supported orientation
 orientation = portrait
-
-# (bool) fullscreen
 fullscreen = 0
 
-# (str) Presplash of the application
 presplash.filename =
-
-# (str) Icon of the application
 icon.filename =
 
-# (list) List of service to declare
-services =
+android.api = 33
+android.minapi = 24
+android.ndk = 28c
 
+android.archs = arm64-v8a,armeabi-v7a
+
+android.accept_sdk_license = True
+
+p4a.branch = develop
+p4a.commit = 0382d27
 
 [buildozer]
 
-# (str) Directory where buildozer should store its global data
 build_dir = .buildozer
-
-# (str) Directory where buildozer should store the generated apk
 bin_dir = bin
 
-# (str) Warn about deprecated buildozer.spec options
 warn_on_root = 1
 
-android.accept_sdk_license = True
-android.build_tools_version = 34.0.0
+log_level = 2
