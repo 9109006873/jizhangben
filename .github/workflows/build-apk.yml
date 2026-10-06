@@ -1,3 +1,4 @@
+```yaml
 name: Build APK
 
 on:
@@ -29,7 +30,7 @@ jobs:
             unzip \
             wget \
             curl \
-            openjdk-17-jdk \
+            openjdk-11-jdk \
             autoconf \
             libtool \
             pkg-config \
@@ -40,6 +41,19 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev
+
+      - name: Set Java 11
+        shell: bash
+        run: |
+          JAVA_HOME_PATH="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+
+          echo "JAVA_HOME=$JAVA_HOME_PATH" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_PATH/bin" >> "$GITHUB_PATH"
+
+          echo "===== JAVA ====="
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME_PATH"
+          echo "================"
 
       - name: Install Buildozer
         run: |
@@ -54,7 +68,7 @@ jobs:
           java -version
           echo "========================="
 
-      - name: Install modern Android SDK command line tools
+      - name: Install Android SDK command line tools
         shell: bash
         run: |
           set -e
@@ -62,7 +76,9 @@ jobs:
           SDK_ROOT="$HOME/.buildozer/android/platform/android-sdk"
 
           rm -rf "$SDK_ROOT"
+
           mkdir -p "$SDK_ROOT"
+          mkdir -p "$SDK_ROOT/cmdline-tools"
 
           cd "$SDK_ROOT"
 
@@ -72,24 +88,29 @@ jobs:
             https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip \
             -O commandlinetools.zip
 
-          unzip -q commandlinetools.zip
+          rm -rf "$SDK_ROOT/cmdline-tools/latest"
+          mkdir -p "$SDK_ROOT/cmdline-tools/latest"
 
-          mkdir -p "$SDK_ROOT/cmdline-tools"
+          unzip -q \
+            "$SDK_ROOT/commandlinetools.zip" \
+            -d "$SDK_ROOT/cmdline-tools/extracted"
 
-          mv "$SDK_ROOT/cmdline-tools" "$SDK_ROOT/cmdline-tools-tmp" 2>/dev/null || true
+          if [ ! -d "$SDK_ROOT/cmdline-tools/extracted/cmdline-tools" ]; then
+            echo "ERROR: Android command line tools archive structure is unexpected."
 
-          if [ -d "$SDK_ROOT/cmdline-tools-tmp/cmdline-tools" ]; then
-            mv \
-              "$SDK_ROOT/cmdline-tools-tmp/cmdline-tools" \
-              "$SDK_ROOT/cmdline-tools/latest"
-            rm -rf "$SDK_ROOT/cmdline-tools-tmp"
-          elif [ -d "$SDK_ROOT/cmdline-tools" ]; then
-            true
-          else
-            echo "ERROR: Android command line tools directory not found."
-            find "$SDK_ROOT" -maxdepth 3 -type f | head -100
+            find "$SDK_ROOT/cmdline-tools" \
+              -maxdepth 4 \
+              -type f \
+              -print
+
             exit 1
           fi
+
+          cp -a \
+            "$SDK_ROOT/cmdline-tools/extracted/cmdline-tools/." \
+            "$SDK_ROOT/cmdline-tools/latest/"
+
+          rm -rf "$SDK_ROOT/cmdline-tools/extracted"
 
           mkdir -p "$SDK_ROOT/tools"
 
@@ -101,7 +122,17 @@ jobs:
 
           SDKMANAGER="$SDK_ROOT/tools/bin/sdkmanager"
 
+          echo "===== SDK DIRECTORY ====="
+
+          find "$SDK_ROOT/cmdline-tools/latest" \
+            -maxdepth 2 \
+            -type f \
+            -print | head -100
+
+          echo "========================="
+
           echo "===== SDKMANAGER ====="
+
           ls -la "$SDK_ROOT/tools"
           ls -la "$SDK_ROOT/tools/bin"
 
@@ -124,10 +155,12 @@ jobs:
             --licenses
 
           echo "===== LICENSES ====="
+
           find "$SDK_ROOT/licenses" \
             -maxdepth 1 \
             -type f \
             -print 2>/dev/null || true
+
           echo "===================="
 
       - name: Install required Android SDK packages
@@ -145,9 +178,11 @@ jobs:
             "build-tools;35.0.0"
 
           echo "===== INSTALLED SDK ====="
+
           "$SDKMANAGER" \
             --sdk_root="$SDK_ROOT" \
             --list_installed
+
           echo "========================="
 
       - name: Clean previous Android build
@@ -202,3 +237,4 @@ jobs:
           name: jizhangben-debug-apk
           path: bin/*.apk
           if-no-files-found: error
+```
